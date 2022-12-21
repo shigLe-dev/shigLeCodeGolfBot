@@ -8,6 +8,7 @@ namespace shigLeCodeGolfBot;
 class Program
 {
     DiscordSocketClient client;
+    public Dictionary<ulong, Func<SocketSlashCommand,Task>> commands = new Dictionary<ulong, Func<SocketSlashCommand,Task>>();
 
     public async Task MainAsync()
     {
@@ -28,11 +29,13 @@ class Program
     {
         Console.WriteLine("OnReady");
 
-        await SetCommand();
+        commands[await SetCommand(1031157559404548107)] = OnCodeGolfCommand;
+        commands[await SetCommand(811964339375308890)] = OnCodeGolfCommand;
     }
 
-    private async Task SetCommand(){
-        var guild = client.GetGuild(1031157559404548107);
+    private async Task<ulong> SetCommand(ulong guildId)
+    {
+        var guild = client.GetGuild(guildId);
 
         var guildCommand = new SlashCommandBuilder();
         guildCommand.WithName("codegolf");
@@ -40,18 +43,20 @@ class Program
 
         try
         {
-            await guild.CreateApplicationCommandAsync(guildCommand.Build());
+            return (await guild.CreateApplicationCommandAsync(guildCommand.Build())).Id;
         }
         catch (System.Exception e)
         {
             Console.WriteLine(e.Message);
         }
+
+        return 0;
     }
 
     private Task OnMessage(SocketMessage message)
     {
         Console.WriteLine("{0} {1}:{2}", message.Channel.Name, message.Author.Username, message);
-        
+
         // botの場合すぐ返す
         if (message.Author.IsBot) return Task.CompletedTask;
 
@@ -64,21 +69,32 @@ class Program
         return Task.CompletedTask;
     }
 
-    private Task CreateThread(string name, ITextChannel? channel)
+    private Task<IThreadChannel> CreateThread(string name, ITextChannel? channel)
     {
-        channel?.CreateThreadAsync(
+        return channel?.CreateThreadAsync(
             name: name,
             autoArchiveDuration: ThreadArchiveDuration.OneDay,
             invitable: false,
             type: ThreadType.PublicThread
-        ).Wait();
-
-        return Task.CompletedTask;
+        );
     }
 
-    private async Task OnSlashCommand(SocketSlashCommand command){
-        await CreateThread("test", command.Channel as ITextChannel);
-        await command.RespondAsync("スレッド作った");
+    private async Task OnSlashCommand(SocketSlashCommand command)
+    {
+        if (commands.TryGetValue(command.CommandId, out var commandFunc))
+        {
+            await commandFunc(command);
+        }
+        else
+        {
+            await command.RespondAsync("Error");
+        }
+    }
+
+    private async Task OnCodeGolfCommand(SocketSlashCommand command)
+    {
+        await command.RespondAsync($"{command.User.Mention}さんがCodeGolfを開始しました。");
+        await CreateThread("CodeGolf", command.Channel as ITextChannel).Result.SendMessageAsync("CodeGolfの始まりです。");
     }
 
     public static void Main(string[] args) => new Program().MainAsync().Wait();
