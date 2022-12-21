@@ -9,6 +9,7 @@ class Program
 {
     DiscordSocketClient client;
     public Dictionary<ulong, Func<SocketSlashCommand,Task>> commands = new Dictionary<ulong, Func<SocketSlashCommand,Task>>();
+    public Dictionary<ulong, CodeGolf> codeGolfs = new Dictionary<ulong, CodeGolf>();
 
     public async Task MainAsync()
     {
@@ -94,7 +95,10 @@ class Program
     private async Task OnCodeGolfCommand(SocketSlashCommand command)
     {
         await command.RespondAsync($"{command.User.Mention}さんがCodeGolfを開始しました。");
-        await CreateThread("CodeGolf", command.Channel as ITextChannel).Result.SendMessageAsync("CodeGolfの始まりです。");
+        IThreadChannel threadChannel = await CreateThread("CodeGolf", command.Channel as ITextChannel);
+        await threadChannel.SendMessageAsync("CodeGolfの始まりです。");
+        codeGolfs[threadChannel.Id] = new CodeGolf(threadChannel.Id);
+        Console.WriteLine(codeGolfs.Count);
     }
 
     public static void Main(string[] args) => new Program().MainAsync().Wait();
