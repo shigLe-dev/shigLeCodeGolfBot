@@ -40,8 +40,9 @@ class Program
 
         try
         {
-            commands[(await guild.CreateApplicationCommandAsync(BuildCodeGolfCommand())).Id] = OnCodeGolfCommand;
+            commands[(await guild.CreateApplicationCommandAsync(BuildCreateCodeGolfCommand())).Id] = OnCreateCodeGolfCommand;
             commands[(await guild.CreateApplicationCommandAsync(BuildRemoveCodeGolfCommand())).Id] = OnRemoveCodeGolfCommand;
+            commands[(await guild.CreateApplicationCommandAsync(BuildShowAllCodeGolfCommand())).Id] = OnShowAllCodeGolfCommand;
         }
         catch (System.Exception e)
         {
@@ -49,7 +50,7 @@ class Program
         }
     }
 
-    private SlashCommandProperties BuildCodeGolfCommand()
+    private SlashCommandProperties BuildCreateCodeGolfCommand()
     {
         var guildCommand = new SlashCommandBuilder();
         guildCommand.WithName("create_codegolf");
@@ -63,6 +64,16 @@ class Program
 
         guildCommand.WithName("remove_codegolf");
         guildCommand.WithDescription("このコマンドを使用することで、既存のCodeGolfを削除することが出来ます。");
+
+        return guildCommand.Build();
+    }
+
+    private SlashCommandProperties BuildShowAllCodeGolfCommand()
+    {
+        var guildCommand = new SlashCommandBuilder();
+
+        guildCommand.WithName("show_allcodegolf");
+        guildCommand.WithDescription("このコマンドを使用することで、サーバー内のすべてのCodeGolfを表示することが出来ます。");
 
         return guildCommand.Build();
     }
@@ -105,7 +116,7 @@ class Program
         }
     }
 
-    private async Task OnCodeGolfCommand(SocketSlashCommand command)
+    private async Task OnCreateCodeGolfCommand(SocketSlashCommand command)
     {
         await command.RespondAsync($"{command.User.Mention}さんがCodeGolfを開始しました。");
         IThreadChannel threadChannel = await CreateThread("CodeGolf", command.Channel as ITextChannel);
@@ -135,6 +146,24 @@ class Program
         // 削除
         codeGolfs.Remove(threadId);
         await command.RespondAsync($"CodeGolf ID: {threadId} を終了しました。");
+    }
+
+    private async Task OnShowAllCodeGolfCommand(SocketSlashCommand command)
+    {
+        EmbedBuilder builder = new EmbedBuilder();
+
+        foreach (var codeGolf in codeGolfs.Values)
+        {
+            builder.AddField(codeGolf.threadId.ToString(), $"owner : {client.GetUser(codeGolf.ownerUserId).Mention}", false);
+        }
+
+        if (codeGolfs.Count == 0)
+        {
+            await command.RespondAsync("実行中のCodeGolfは見つかりませんでした。");
+            return;
+        }
+
+        await command.RespondAsync("CodeGolfの一覧", embed: builder.Build());
     }
 
     public static void Main(string[] args) => new Program().MainAsync().Wait();
