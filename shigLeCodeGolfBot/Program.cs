@@ -1,5 +1,5 @@
 ﻿using paizaIOSharp;
-using Discord.Commands;
+using System.Configuration;
 using Discord;
 using Discord.WebSocket;
 
@@ -16,7 +16,7 @@ class Program
         client.Log += LogAsync;
         client.Ready += OnReady;
         client.MessageReceived += OnMessage;
-        await client.LoginAsync(TokenType.Bot, "MTA1NTAwMzM0NDMxOTU0OTQ0MA.G8k9Ns.xUBexKQuB58sDwVQsrinFi7QKyVRE6McI151VM");
+        await client.LoginAsync(TokenType.Bot, ConfigurationManager.AppSettings["token"]);
         await client.StartAsync();
         await Task.Delay(Timeout.Infinite);
     }
@@ -47,7 +47,8 @@ class Program
         return Task.CompletedTask;
     }
 
-    private Task CreateThread(string name,ITextChannel? channel){
+    private Task CreateThread(string name, ITextChannel? channel)
+    {
         channel?.CreateThreadAsync(
             name: name,
             autoArchiveDuration: ThreadArchiveDuration.OneWeek,
