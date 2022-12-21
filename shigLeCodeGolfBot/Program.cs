@@ -8,7 +8,7 @@ namespace shigLeCodeGolfBot;
 class Program
 {
     DiscordSocketClient client;
-    public Dictionary<ulong, Func<SocketSlashCommand,Task>> commands = new Dictionary<ulong, Func<SocketSlashCommand,Task>>();
+    public Dictionary<ulong, Func<SocketSlashCommand, Task>> commands = new Dictionary<ulong, Func<SocketSlashCommand, Task>>();
     public Dictionary<ulong, CodeGolf> codeGolfs = new Dictionary<ulong, CodeGolf>();
 
     public async Task MainAsync()
@@ -30,28 +30,41 @@ class Program
     {
         Console.WriteLine("OnReady");
 
-        commands[await SetCommand(1031157559404548107)] = OnCodeGolfCommand;
-        commands[await SetCommand(811964339375308890)] = OnCodeGolfCommand;
+        await SetCommand(1031157559404548107);
+        await SetCommand(811964339375308890);
     }
 
-    private async Task<ulong> SetCommand(ulong guildId)
+    private async Task SetCommand(ulong guildId)
     {
         var guild = client.GetGuild(guildId);
 
-        var guildCommand = new SlashCommandBuilder();
-        guildCommand.WithName("codegolf");
-        guildCommand.WithDescription("このコマンドを使用することで、新たにCodeGolfを始めることが出来ます。");
-
         try
         {
-            return (await guild.CreateApplicationCommandAsync(guildCommand.Build())).Id;
+            commands[(await guild.CreateApplicationCommandAsync(BuildCodeGolfCommand())).Id] = OnCodeGolfCommand;
+            commands[(await guild.CreateApplicationCommandAsync(BuildRemoveCodeGolfCommand())).Id] = OnRemoveCodeGolfCommand;
         }
         catch (System.Exception e)
         {
             Console.WriteLine(e.Message);
         }
+    }
 
-        return 0;
+    private SlashCommandProperties BuildCodeGolfCommand()
+    {
+        var guildCommand = new SlashCommandBuilder();
+        guildCommand.WithName("create_codegolf");
+        guildCommand.WithDescription("このコマンドを使用することで、新たにCodeGolfを始めることが出来ます。");
+        return guildCommand.Build();
+    }
+
+    private SlashCommandProperties BuildRemoveCodeGolfCommand()
+    {
+        var guildCommand = new SlashCommandBuilder();
+
+        guildCommand.WithName("remove_codegolf");
+        guildCommand.WithDescription("このコマンドを使用することで、既存のCodeGolfを削除することが出来ます。");
+
+        return guildCommand.Build();
     }
 
     private Task OnMessage(SocketMessage message)
@@ -97,8 +110,31 @@ class Program
         await command.RespondAsync($"{command.User.Mention}さんがCodeGolfを開始しました。");
         IThreadChannel threadChannel = await CreateThread("CodeGolf", command.Channel as ITextChannel);
         await threadChannel.SendMessageAsync("CodeGolfの始まりです。");
-        codeGolfs[threadChannel.Id] = new CodeGolf(threadChannel.Id);
+        codeGolfs[threadChannel.Id] = new CodeGolf(threadChannel.Id, command.User.Id);
         Console.WriteLine(codeGolfs.Count);
+    }
+
+    private async Task OnRemoveCodeGolfCommand(SocketSlashCommand command)
+    {
+        ulong threadId = command.ChannelId ?? 0;
+        ulong userId = command.User.Id;
+
+        // CodeGolfを実行しているスレッドか
+        if (!codeGolfs.TryGetValue(threadId, out var codeGolf))
+        {
+            await command.RespondAsync($"ERROR: このスレッドでは実行されていません。");
+            return;
+        }
+        // コマンドを実行したuserがownerUserか
+        if (codeGolf.ownerUserId != userId)
+        {
+            await command.RespondAsync($"ERROR: 権限がありません。");
+            return;
+        }
+
+        // 削除
+        codeGolfs.Remove(threadId);
+        await command.RespondAsync($"CodeGolf ID: {threadId} を終了しました。");
     }
 
     public static void Main(string[] args) => new Program().MainAsync().Wait();
