@@ -9,11 +9,13 @@ namespace shigLeCodeGolfBot;
 class Program
 {
     DiscordSocketClient client;
+    HttpClient httpClient;
     public Dictionary<ulong, Func<SocketSlashCommand, Task>> commands = new Dictionary<ulong, Func<SocketSlashCommand, Task>>();
     public Dictionary<ulong, CodeGolf> codeGolfs = new Dictionary<ulong, CodeGolf>();
 
     public async Task MainAsync()
     {
+        httpClient = new HttpClient();
         client = new DiscordSocketClient(new DiscordSocketConfig
         {
             GatewayIntents = GatewayIntents.All
@@ -122,22 +124,34 @@ class Program
     private async Task OnCreateCodeGolfCommand(SocketSlashCommand command)
     {
         IThreadChannel threadChannel;
-        string name = "";
-        string settingsUrl = "";
+        CodeGolfSettings settings = null;
+        string name = (string)command.Data.Options.ToArray()[0];
+        string settingsUrl = (string)command.Data.Options.ToArray()[1];
+
+        // 設定ファイル読み込み関係
+        try
+        {
+            settings = CodeGolfSettings.Parse(JsonNode.Parse(httpClient.GetAsync(settingsUrl).Result.Content.ReadAsStringAsync().Result));
+        }
+        catch (System.Exception e)
+        {
+            Console.WriteLine(e.Message);
+            await command.RespondAsync($"設定ファイルの読み込みに失敗しました。");
+            return;
+        }
+        // スレッド生成関係
         try
         {
             threadChannel = await CreateThread("CodeGolf", command.Channel as ITextChannel);
-            await threadChannel.SendMessageAsync("CodeGolfの始まりです。");
-            name = (string)command.Data.Options.ToArray()[0];
-            settingsUrl = (string)command.Data.Options.ToArray()[1];
         }
         catch (System.Exception)
         {
-            await command.RespondAsync($"生成に失敗しました。");
+            await command.RespondAsync($"スレッドの生成に失敗しました。");
             return;
         }
+        await threadChannel.SendMessageAsync("CodeGolfの始まりです。");
         await command.RespondAsync($"{command.User.Mention}さんがCodeGolfを開始しました。");
-        codeGolfs[threadChannel.Id] = new CodeGolf(name,threadChannel, command.User.Id, settingsUrl);
+        codeGolfs[threadChannel.Id] = new CodeGolf(name, threadChannel, command.User.Id, settingsUrl, settings);
         Console.WriteLine(codeGolfs[threadChannel.Id].name);
     }
 
