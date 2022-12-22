@@ -47,6 +47,7 @@ class Program
             commands[(await guild.CreateApplicationCommandAsync(BuildRemoveCodeGolfCommand())).Id] = OnRemoveCodeGolfCommand;
             commands[(await guild.CreateApplicationCommandAsync(BuildShowAllCodeGolfCommand())).Id] = OnShowAllCodeGolfCommand;
             commands[(await guild.CreateApplicationCommandAsync(BuildAddPlayerCommand())).Id] = OnAddPlayerCommand;
+            commands[(await guild.CreateApplicationCommandAsync(BuildChangePlayerTeamCommand())).Id] = OnChangePlayerTeamCommand;
         }
         catch (System.Exception e)
         {
@@ -98,6 +99,22 @@ class Program
                 .AddChoice("Red", 0)
                 .AddChoice("Blue", 1));
         return builder.Build();
+    }
+
+    private SlashCommandProperties BuildChangePlayerTeamCommand()
+    {
+        return new SlashCommandBuilder()
+            .WithName("change_team")
+            .WithDescription("このコマンドを使用することで、参加中のプレイヤーのチームを変更することが出来ます。")
+            .AddOption("user", ApplicationCommandOptionType.User, "変更するUser", isRequired: true)
+            .AddOption(new SlashCommandOptionBuilder()
+                .WithName("team")
+                .WithDescription("変更先のTeam")
+                .WithType(ApplicationCommandOptionType.Integer)
+                .WithRequired(true)
+                .AddChoice("Red", 0)
+                .AddChoice("Blue", 1))
+            .Build();
     }
 
     private Task OnMessage(SocketMessage message)
@@ -239,6 +256,35 @@ class Program
 
         await command.RespondAsync($"{command.User.Mention}を{team.ToString()}に追加しました。");
         codeGolf.AddPlayer(new CodeGolfPlayer(userId, team));
+    }
+
+    private async Task OnChangePlayerTeamCommand(SocketSlashCommand command)
+    {
+        ulong userId = ((SocketGuildUser)command.Data.Options.ToArray()[0].Value).Id;
+        CodeGolfTeam team = (CodeGolfTeam)((long)command.Data.Options.ToArray()[1].Value);
+
+        // そのCodeGolfが存在するか調べる
+        if (!codeGolfs.TryGetValue(command.Channel.Id, out var codeGolf))
+        {
+            await command.RespondAsync("そのスレッドではCodeGolfを実行していません。");
+            return;
+        }
+        // 権限があるか調べる
+        if (codeGolf.ownerUserId != command.User.Id)
+        {
+            await command.RespondAsync("権限がありません。");
+            return;
+        }
+        // すでに参加しているか調べる
+        if (!codeGolf.players.ContainsKey(userId))
+        {
+            await command.RespondAsync($"{command.User.Mention}はこのCodeGolfに参加していません。参加させる場合は、AddPlayerコマンドを使用してください。");
+            return;
+        }
+
+        // チームを変更
+        await command.RespondAsync($"{client.GetUser(userId).Mention}のTeamを{team.ToString()}に変更しました。");
+        codeGolf.players[userId].ChangeTeam(team);
     }
 
     public static void Main(string[] args) => new Program().MainAsync().Wait();
