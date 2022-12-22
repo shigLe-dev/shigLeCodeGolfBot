@@ -180,13 +180,13 @@ class Program
         // CodeGolfを実行しているスレッドか
         if (!codeGolfs.TryGetValue(threadId, out var codeGolf))
         {
-            await command.RespondAsync($"ERROR: このスレッドでは実行されていません。");
+            await command.RespondAsync($"このスレッドでは実行されていません。");
             return;
         }
         // コマンドを実行したuserがownerUserか
         if (codeGolf.ownerUserId != userId)
         {
-            await command.RespondAsync($"ERROR: 権限がありません。");
+            await command.RespondAsync($"権限がありません。");
             return;
         }
 
@@ -215,7 +215,30 @@ class Program
 
     private async Task OnAddPlayerCommand(SocketSlashCommand command)
     {
+        ulong userId = ((SocketGuildUser)command.Data.Options.ToArray()[0].Value).Id;
+        CodeGolfTeam team = (CodeGolfTeam)((long)command.Data.Options.ToArray()[1].Value);
 
+        // そのCodeGolfが存在するか調べる
+        if (!codeGolfs.TryGetValue(command.Channel.Id, out var codeGolf))
+        {
+            await command.RespondAsync("そのスレッドではCodeGolfを実行していません。");
+            return;
+        }
+        // 権限があるか調べる
+        if (codeGolf.ownerUserId != command.User.Id)
+        {
+            await command.RespondAsync("権限がありません。");
+            return;
+        }
+        // すでに存在していないか調べる
+        if (codeGolf.players.ContainsKey(userId))
+        {
+            await command.RespondAsync($"{command.User.Mention}はすでに参加しています。チームを変更する場合は、ChangeTeamコマンドを実行してください。");
+            return;
+        }
+
+        await command.RespondAsync($"{command.User.Mention}を{team.ToString()}に追加しました。");
+        codeGolf.AddPlayer(new CodeGolfPlayer(userId, team));
     }
 
     public static void Main(string[] args) => new Program().MainAsync().Wait();

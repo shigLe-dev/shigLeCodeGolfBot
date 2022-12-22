@@ -1,4 +1,5 @@
 using Discord;
+using System.Collections.ObjectModel;
 
 namespace shigLeCodeGolfBot;
 
@@ -9,8 +10,9 @@ public class CodeGolf
     public readonly ulong ownerUserId;
     public readonly string settingsUrl;
     public readonly CodeGolfSettings settings;
+    public ReadOnlyDictionary<ulong, CodeGolfPlayer> players => _players.ToDictionary(p => p.userId).AsReadOnly();
     private readonly IThreadChannel thread;
-    private readonly List<CodeGolfPlayer> players;
+    private readonly List<CodeGolfPlayer> _players;
 
     public CodeGolf(string name, IThreadChannel thread, ulong ownerUserId, string settingsUrl, CodeGolfSettings settings)
     {
@@ -20,11 +22,11 @@ public class CodeGolf
         this.settingsUrl = settingsUrl;
         this.settings = settings;
         this.thread = thread;
-        this.players = new List<CodeGolfPlayer>();
+        this._players = new List<CodeGolfPlayer>();
     }
 
-    public void AddPlayer(ulong userId)
+    public void AddPlayer(CodeGolfPlayer player)
     {
-        players.Add(new CodeGolfPlayer(userId, CodeGolfTeam.Red));
+        _players.Add(player);
     }
 }
