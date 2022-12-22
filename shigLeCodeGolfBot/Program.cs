@@ -1,4 +1,5 @@
 ﻿using paizaIOSharp;
+using System.Text.Json.Nodes;
 using System.Configuration;
 using Discord;
 using Discord.WebSocket;
@@ -129,7 +130,6 @@ class Program
             await threadChannel.SendMessageAsync("CodeGolfの始まりです。");
             name = (string)command.Data.Options.ToArray()[0];
             settingsUrl = (string)command.Data.Options.ToArray()[1];
-
         }
         catch (System.Exception)
         {
