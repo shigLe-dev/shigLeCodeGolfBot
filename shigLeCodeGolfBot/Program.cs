@@ -57,7 +57,7 @@ class Program
         }
     }
 
-#region BuildCommand
+    #region BuildCommand
     private SlashCommandProperties BuildCreateCodeGolfCommand()
     {
         var guildCommand = new SlashCommandBuilder()
@@ -130,18 +130,28 @@ class Program
     private SlashCommandProperties BuildRunProgramCommand()
     {
         SlashCommandBuilder builder = new SlashCommandBuilder();
+        SlashCommandOptionBuilder optionBuilder = new SlashCommandOptionBuilder()
+            .WithName("language")
+            .WithType(ApplicationCommandOptionType.Integer)
+            .WithDescription("実行する言語を指定してください。")
+            .WithRequired(true);
+
+        for (int i = 0; i < CodeGolfLanguage.Languages.Count; i++)
+        {
+            optionBuilder.AddChoice(CodeGolfLanguage.Languages[i], i);
+        }
 
         builder.WithName("run")
             .WithDescription("このコマンドを使用することで、プログラムを実行することが出来ます。")
-            .AddOption("language", ApplicationCommandOptionType.String, "実行する言語を指定してください。", isRequired: true)
+            .AddOption(optionBuilder)
             .AddOption("code", ApplicationCommandOptionType.String, "実行するプログラムを記述してください。", isRequired: true)
             .AddOption("input", ApplicationCommandOptionType.String, "実行時に入力される文字列を記述してください。", isRequired: false);
 
         return builder.Build();
     }
-#endregion
+    #endregion
 
-#region OnCommand
+    #region OnCommand
     private async Task OnCreateCodeGolfCommand(SocketSlashCommand command)
     {
         IThreadChannel threadChannel;
@@ -309,9 +319,13 @@ class Program
 
     private async Task OnRunProgramCommand(SocketSlashCommand command)
     {
-        string language = ((string)command.Data.Options.ToArray()[0]);
+        string language = CodeGolfLanguage.Languages[(int)(long)command.Data.Options.ToArray()[0].Value];
         string code = ((string)command.Data.Options.ToArray()[1]);
-        string input = ((string)command.Data.Options.ToArray()[2]);
+        string input = "";
+        if (command.Data.Options.Count >= 3)
+        {
+            input = ((string)command.Data.Options.ToArray()[2]);
+        }
 
         Result result = new Result();
 
@@ -325,9 +339,9 @@ class Program
             return;
         }
 
-        await command.RespondAsync($"```{result.stdOut}```");
+        await command.RespondAsync($"Language:```{language}```\nCode:```{language}\n{code}\n```\nResult:``` {result.stdOut}```\nError:``` {result.stdError}```\nBuildError:``` {result.buildStdError}```");
     }
-#endregion
+    #endregion
 
     private Task OnMessage(SocketMessage message)
     {
