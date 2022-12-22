@@ -48,6 +48,7 @@ class Program
             commands[(await guild.CreateApplicationCommandAsync(BuildShowAllCodeGolfCommand())).Id] = OnShowAllCodeGolfCommand;
             commands[(await guild.CreateApplicationCommandAsync(BuildAddPlayerCommand())).Id] = OnAddPlayerCommand;
             commands[(await guild.CreateApplicationCommandAsync(BuildChangePlayerTeamCommand())).Id] = OnChangePlayerTeamCommand;
+            commands[(await guild.CreateApplicationCommandAsync(BuildShowAllPlayerCommand())).Id] = OnShowAllPlayerCommand;
         }
         catch (System.Exception e)
         {
@@ -55,6 +56,7 @@ class Program
         }
     }
 
+#region BuildCommand
     private SlashCommandProperties BuildCreateCodeGolfCommand()
     {
         var guildCommand = new SlashCommandBuilder()
@@ -117,44 +119,15 @@ class Program
             .Build();
     }
 
-    private Task OnMessage(SocketMessage message)
+    private SlashCommandProperties BuildShowAllPlayerCommand()
     {
-        Console.WriteLine("{0} {1}:{2}", message.Channel.Name, message.Author.Username, message);
-
-        // botの場合すぐ返す
-        if (message.Author.IsBot) return Task.CompletedTask;
-
-        return Task.CompletedTask;
+        return new SlashCommandBuilder()
+            .WithName("show_allplayer")
+            .WithDescription("このコマンドを使用することで、このCodeGolfに参加しているPlayerを表示することが出来ます。").Build();
     }
+#endregion
 
-    private Task LogAsync(LogMessage log)
-    {
-        Console.WriteLine(log);
-        return Task.CompletedTask;
-    }
-
-    private Task<IThreadChannel> CreateThread(string name, ITextChannel? channel)
-    {
-        return channel?.CreateThreadAsync(
-            name: name,
-            autoArchiveDuration: ThreadArchiveDuration.OneDay,
-            invitable: false,
-            type: ThreadType.PublicThread
-        );
-    }
-
-    private async Task OnSlashCommand(SocketSlashCommand command)
-    {
-        if (commands.TryGetValue(command.CommandId, out var commandFunc))
-        {
-            await commandFunc(command);
-        }
-        else
-        {
-            await command.RespondAsync("Error");
-        }
-    }
-
+#region OnCommand
     private async Task OnCreateCodeGolfCommand(SocketSlashCommand command)
     {
         IThreadChannel threadChannel;
@@ -232,7 +205,8 @@ class Program
 
     private async Task OnAddPlayerCommand(SocketSlashCommand command)
     {
-        ulong userId = ((SocketGuildUser)command.Data.Options.ToArray()[0].Value).Id;
+        SocketGuildUser user = (SocketGuildUser)command.Data.Options.ToArray()[0].Value;
+        ulong userId = user.Id;
         CodeGolfTeam team = (CodeGolfTeam)((long)command.Data.Options.ToArray()[1].Value);
 
         // そのCodeGolfが存在するか調べる
@@ -250,11 +224,11 @@ class Program
         // すでに存在していないか調べる
         if (codeGolf.players.ContainsKey(userId))
         {
-            await command.RespondAsync($"{command.User.Mention}はすでに参加しています。チームを変更する場合は、ChangeTeamコマンドを実行してください。");
+            await command.RespondAsync($"{user.Mention}はすでに参加しています。チームを変更する場合は、ChangeTeamコマンドを実行してください。");
             return;
         }
 
-        await command.RespondAsync($"{command.User.Mention}を{team.ToString()}に追加しました。");
+        await command.RespondAsync($"{user.Mention}を{team.ToString()}に追加しました。");
         codeGolf.AddPlayer(new CodeGolfPlayer(userId, team));
     }
 
@@ -285,6 +259,77 @@ class Program
         // チームを変更
         await command.RespondAsync($"{client.GetUser(userId).Mention}のTeamを{team.ToString()}に変更しました。");
         codeGolf.players[userId].ChangeTeam(team);
+    }
+
+    private async Task OnShowAllPlayerCommand(SocketSlashCommand command)
+    {
+        // そのCodeGolfが存在するか調べる
+        if (!codeGolfs.TryGetValue(command.Channel.Id, out var codeGolf))
+        {
+            await command.RespondAsync("このスレッドではCodeGolfを実行していません。");
+            return;
+        }
+
+        // プレイヤーが0の場合すぐ返す
+        if (codeGolf.players.Count == 0)
+        {
+            await command.RespondAsync("参加中のプレイヤーはいません。");
+            return;
+        }
+
+        EmbedBuilder builder = new EmbedBuilder();
+
+        builder.AddField("Red", codeGolf.players.Values.Count(p => p.team == CodeGolfTeam.Red));
+        builder.AddField("Blue", codeGolf.players.Values.Count(p => p.team == CodeGolfTeam.Blue));
+
+        await command.RespondAsync("すべてのプレイヤー", embed: builder.Build());
+
+        foreach (var player in codeGolf.players.Values)
+        {
+            await command.Channel.SendMessageAsync(embed: new EmbedBuilder()
+                .WithColor(player.team == CodeGolfTeam.Red ? Color.Red : Color.Blue)
+                .WithAuthor(client.GetUser(player.userId))
+                .Build());
+        }
+    }
+#endregion
+
+    private Task OnMessage(SocketMessage message)
+    {
+        Console.WriteLine("{0} {1}:{2}", message.Channel.Name, message.Author.Username, message);
+
+        // botの場合すぐ返す
+        if (message.Author.IsBot) return Task.CompletedTask;
+
+        return Task.CompletedTask;
+    }
+
+    private Task LogAsync(LogMessage log)
+    {
+        Console.WriteLine(log);
+        return Task.CompletedTask;
+    }
+
+    private Task<IThreadChannel> CreateThread(string name, ITextChannel? channel)
+    {
+        return channel?.CreateThreadAsync(
+            name: name,
+            autoArchiveDuration: ThreadArchiveDuration.OneDay,
+            invitable: false,
+            type: ThreadType.PublicThread
+        );
+    }
+
+    private async Task OnSlashCommand(SocketSlashCommand command)
+    {
+        if (commands.TryGetValue(command.CommandId, out var commandFunc))
+        {
+            await commandFunc(command);
+        }
+        else
+        {
+            await command.RespondAsync("Error");
+        }
     }
 
     public static void Main(string[] args) => new Program().MainAsync().Wait();

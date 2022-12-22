@@ -3,7 +3,7 @@ namespace shigLeCodeGolfBot;
 public class CodeGolfPlayer
 {
     public readonly ulong userId;
-    public CodeGolfTeam team;
+    public CodeGolfTeam team { get; private set; }
 
     public CodeGolfPlayer(ulong userId, CodeGolfTeam team)
     {
