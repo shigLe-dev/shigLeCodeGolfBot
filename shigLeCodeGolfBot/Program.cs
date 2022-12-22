@@ -46,6 +46,7 @@ class Program
             commands[(await guild.CreateApplicationCommandAsync(BuildCreateCodeGolfCommand())).Id] = OnCreateCodeGolfCommand;
             commands[(await guild.CreateApplicationCommandAsync(BuildRemoveCodeGolfCommand())).Id] = OnRemoveCodeGolfCommand;
             commands[(await guild.CreateApplicationCommandAsync(BuildShowAllCodeGolfCommand())).Id] = OnShowAllCodeGolfCommand;
+            commands[(await guild.CreateApplicationCommandAsync(BuildAddPlayerCommand())).Id] = OnAddPlayerCommand;
         }
         catch (System.Exception e)
         {
@@ -81,6 +82,22 @@ class Program
         guildCommand.WithDescription("このコマンドを使用することで、サーバー内のすべてのCodeGolfを表示することが出来ます。");
 
         return guildCommand.Build();
+    }
+
+    private SlashCommandProperties BuildAddPlayerCommand()
+    {
+        SlashCommandBuilder builder = new SlashCommandBuilder()
+            .WithName("add_player")
+            .WithDescription("このコマンドを使用することで、現在このスレッドで実行されているCodeGolfにプレイヤーを追加することが出来ます。")
+            .AddOption("user", ApplicationCommandOptionType.User, "追加するUser", isRequired: true)
+            .AddOption(new SlashCommandOptionBuilder()
+                .WithName("team")
+                .WithDescription("追加するTeam")
+                .WithType(ApplicationCommandOptionType.Integer)
+                .WithRequired(true)
+                .AddChoice("Red", 0)
+                .AddChoice("Blue", 1));
+        return builder.Build();
     }
 
     private Task OnMessage(SocketMessage message)
@@ -194,6 +211,11 @@ class Program
         }
 
         await command.RespondAsync("CodeGolfの一覧", embed: builder.Build());
+    }
+
+    private async Task OnAddPlayerCommand(SocketSlashCommand command)
+    {
+
     }
 
     public static void Main(string[] args) => new Program().MainAsync().Wait();

@@ -10,6 +10,7 @@ public class CodeGolf
     public readonly string settingsUrl;
     public readonly CodeGolfSettings settings;
     private readonly IThreadChannel thread;
+    private readonly List<CodeGolfPlayer> players;
 
     public CodeGolf(string name, IThreadChannel thread, ulong ownerUserId, string settingsUrl, CodeGolfSettings settings)
     {
@@ -19,5 +20,11 @@ public class CodeGolf
         this.settingsUrl = settingsUrl;
         this.settings = settings;
         this.thread = thread;
+        this.players = new List<CodeGolfPlayer>();
+    }
+
+    public void AddPlayer(ulong userId)
+    {
+        players.Add(new CodeGolfPlayer(userId, CodeGolfTeam.Red));
     }
 }
