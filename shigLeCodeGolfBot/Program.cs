@@ -52,9 +52,11 @@ class Program
 
     private SlashCommandProperties BuildCreateCodeGolfCommand()
     {
-        var guildCommand = new SlashCommandBuilder();
-        guildCommand.WithName("create_codegolf");
-        guildCommand.WithDescription("このコマンドを使用することで、新たにCodeGolfを始めることが出来ます。");
+        var guildCommand = new SlashCommandBuilder()
+            .WithName("create_codegolf")
+            .WithDescription("このコマンドを使用することで、新たにCodeGolfを始めることが出来ます。")
+            .AddOption("name", ApplicationCommandOptionType.String, "CodeGolfの名前を設定してください。", isRequired: true)
+            .AddOption("settingsurl", ApplicationCommandOptionType.String, "設定を記述しているファイルへのURLを設定してください。", isRequired: true);
         return guildCommand.Build();
     }
 
@@ -118,11 +120,25 @@ class Program
 
     private async Task OnCreateCodeGolfCommand(SocketSlashCommand command)
     {
+        IThreadChannel threadChannel;
+        string name = "";
+        string settingsUrl = "";
+        try
+        {
+            threadChannel = await CreateThread("CodeGolf", command.Channel as ITextChannel);
+            await threadChannel.SendMessageAsync("CodeGolfの始まりです。");
+            name = (string)command.Data.Options.ToArray()[0];
+            settingsUrl = (string)command.Data.Options.ToArray()[1];
+
+        }
+        catch (System.Exception)
+        {
+            await command.RespondAsync($"生成に失敗しました。");
+            return;
+        }
         await command.RespondAsync($"{command.User.Mention}さんがCodeGolfを開始しました。");
-        IThreadChannel threadChannel = await CreateThread("CodeGolf", command.Channel as ITextChannel);
-        await threadChannel.SendMessageAsync("CodeGolfの始まりです。");
-        codeGolfs[threadChannel.Id] = new CodeGolf(threadChannel.Id, command.User.Id);
-        Console.WriteLine(codeGolfs.Count);
+        codeGolfs[threadChannel.Id] = new CodeGolf(name,threadChannel.Id, command.User.Id, settingsUrl);
+        Console.WriteLine(codeGolfs[threadChannel.Id].name);
     }
 
     private async Task OnRemoveCodeGolfCommand(SocketSlashCommand command)
@@ -154,7 +170,7 @@ class Program
 
         foreach (var codeGolf in codeGolfs.Values)
         {
-            builder.AddField(codeGolf.threadId.ToString(), $"owner : {client.GetUser(codeGolf.ownerUserId).Mention}", false);
+            builder.AddField(codeGolf.name, $"owner : {client.GetUser(codeGolf.ownerUserId).Mention}", false);
         }
 
         if (codeGolfs.Count == 0)
