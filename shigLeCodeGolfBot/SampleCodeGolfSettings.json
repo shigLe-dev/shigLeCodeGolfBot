@@ -1,0 +1,107 @@
+{
+    "name": "TestName",
+    "width": 2,
+    "height": 2,
+    "questions": [
+        {
+            "sentence": "テストの問題です。",
+            "cases": [
+                {
+                    "isExample": true,
+                    "input": "testInput",
+                    "output": "testOutput"
+                },
+                {
+                    "isExample": true,
+                    "input": "testInput2",
+                    "output": "testOutput2"
+                },
+                {
+                    "isExample": false,
+                    "input": "testInput3",
+                    "output": "testOutput3"
+                },
+                {
+                    "isExample": false,
+                    "input": "testInput4",
+                    "output": "testOutput4"
+                }
+            ]
+        },
+        {
+            "sentence": "テストの問題2です。",
+            "cases": [
+                {
+                    "isExample": true,
+                    "input": "testInput",
+                    "output": "testOutput"
+                },
+                {
+                    "isExample": true,
+                    "input": "testInput2",
+                    "output": "testOutput2"
+                },
+                {
+                    "isExample": false,
+                    "input": "testInput3",
+                    "output": "testOutput3"
+                },
+                {
+                    "isExample": false,
+                    "input": "testInput4",
+                    "output": "testOutput4"
+                }
+            ]
+        },
+        {
+            "sentence": "テストの問題3です。",
+            "cases": [
+                {
+                    "isExample": true,
+                    "input": "testInput",
+                    "output": "testOutput"
+                },
+                {
+                    "isExample": true,
+                    "input": "testInput2",
+                    "output": "testOutput2"
+                },
+                {
+                    "isExample": false,
+                    "input": "testInput3",
+                    "output": "testOutput3"
+                },
+                {
+                    "isExample": false,
+                    "input": "testInput4",
+                    "output": "testOutput4"
+                }
+            ]
+        },
+        {
+            "sentence": "テストの問題4です。",
+            "cases": [
+                {
+                    "isExample": true,
+                    "input": "testInput",
+                    "output": "testOutput"
+                },
+                {
+                    "isExample": true,
+                    "input": "testInput2",
+                    "output": "testOutput2"
+                },
+                {
+                    "isExample": false,
+                    "input": "testInput3",
+                    "output": "testOutput3"
+                },
+                {
+                    "isExample": false,
+                    "input": "testInput4",
+                    "output": "testOutput4"
+                }
+            ]
+        }
+    ]
+}

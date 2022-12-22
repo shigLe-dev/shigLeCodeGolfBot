@@ -137,7 +137,7 @@ class Program
             return;
         }
         await command.RespondAsync($"{command.User.Mention}さんがCodeGolfを開始しました。");
-        codeGolfs[threadChannel.Id] = new CodeGolf(name,threadChannel.Id, command.User.Id, settingsUrl);
+        codeGolfs[threadChannel.Id] = new CodeGolf(name,threadChannel, command.User.Id, settingsUrl);
         Console.WriteLine(codeGolfs[threadChannel.Id].name);
     }
 
