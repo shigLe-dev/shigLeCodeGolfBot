@@ -49,6 +49,7 @@ class Program
             commands[(await guild.CreateApplicationCommandAsync(BuildAddPlayerCommand())).Id] = OnAddPlayerCommand;
             commands[(await guild.CreateApplicationCommandAsync(BuildChangePlayerTeamCommand())).Id] = OnChangePlayerTeamCommand;
             commands[(await guild.CreateApplicationCommandAsync(BuildShowAllPlayerCommand())).Id] = OnShowAllPlayerCommand;
+            commands[(await guild.CreateApplicationCommandAsync(BuildRunProgramCommand())).Id] = OnRunProgramCommand;
         }
         catch (System.Exception e)
         {
@@ -124,6 +125,19 @@ class Program
         return new SlashCommandBuilder()
             .WithName("show_allplayer")
             .WithDescription("このコマンドを使用することで、このCodeGolfに参加しているPlayerを表示することが出来ます。").Build();
+    }
+
+    private SlashCommandProperties BuildRunProgramCommand()
+    {
+        SlashCommandBuilder builder = new SlashCommandBuilder();
+
+        builder.WithName("run")
+            .WithDescription("このコマンドを使用することで、プログラムを実行することが出来ます。")
+            .AddOption("language", ApplicationCommandOptionType.String, "実行する言語を指定してください。", isRequired: true)
+            .AddOption("code", ApplicationCommandOptionType.String, "実行するプログラムを記述してください。", isRequired: true)
+            .AddOption("input", ApplicationCommandOptionType.String, "実行時に入力される文字列を記述してください。", isRequired: false);
+
+        return builder.Build();
     }
 #endregion
 
@@ -291,6 +305,27 @@ class Program
                 .WithAuthor(client.GetUser(player.userId))
                 .Build());
         }
+    }
+
+    private async Task OnRunProgramCommand(SocketSlashCommand command)
+    {
+        string language = ((string)command.Data.Options.ToArray()[0]);
+        string code = ((string)command.Data.Options.ToArray()[1]);
+        string input = ((string)command.Data.Options.ToArray()[2]);
+
+        Result result = new Result();
+
+        try
+        {
+            result = PaizaIO.Run(code, language, input);
+        }
+        catch (System.Exception)
+        {
+            await command.RespondAsync("実行できませんでした。");
+            return;
+        }
+
+        await command.RespondAsync($"```{result.stdOut}```");
     }
 #endregion
 
